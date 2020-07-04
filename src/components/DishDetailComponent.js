@@ -4,8 +4,9 @@ import React,{Component}  from 'react';
 import { Card, CardImg,CardText, CardBody, CardTitle, Breadcrumb, BreadcrumbItem,Modal,ModalBody,ModalHeader,Button,Row,Col,Label} from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { Control, LocalForm, Errors } from "react-redux-form";
-
-
+import { Loading } from './LoadingComponent';
+import { baseUrl } from '../shared/baseUrl';
+import { FadeTransform, Fade, Stagger} from 'react-animation-components';
 
 const required = (val) =>val && val.length;
 const maxLength=(len)=>val=>!val||val.length<=len;
@@ -15,13 +16,18 @@ const minLength=(len)=>val=> val && val.length>=len;
 function RenderDish({dish}) {
   if (dish != null) {
     return (
-      <Card>
-          <CardImg width="100%" src={dish.image} alt={dish.name} />
-          <CardBody>
-              <CardTitle>{dish.name}</CardTitle>
-              <CardText>{dish.description}</CardText>
-          </CardBody>
-      </Card>
+      <FadeTransform in
+                tranformProps={{
+                    exitTransform: 'scale(0.5) translateY(-50%)'
+                }}>
+        <Card>
+            <CardImg width="100%" src={baseUrl + dish.image} alt={dish.name} />
+            <CardBody>
+                <CardTitle>{dish.name}</CardTitle>
+                <CardText>{dish.description}</CardText>
+            </CardBody>
+        </Card>
+      </FadeTransform>
     );
   } 
 }
@@ -30,17 +36,23 @@ function RenderDish({dish}) {
     
    
     
-function RenderComments({comments, addComment, dishId}){
+function RenderComments({comments, postComment, dishId}){
  
   if(comments !=null){
   const commentList = comments.map((item)=>{ 
     return(
-      <li>
-        {item.comment}
-        <br/><br/>
-        -- {item.author},  {new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: '2-digit'}).format(new Date(Date.parse(item.date)))}
-        <br/><br/>
-      </li>
+      <Stagger in>
+        <Fade in>
+          <li>
+            
+              {item.comment}
+              <br/><br/>
+              -- {item.author},  {new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: '2-digit'}).format(new Date(Date.parse(item.date)))}
+              <br/><br/>
+            
+          </li>
+        </Fade>
+      </Stagger>
     );
   });
   return (
@@ -49,7 +61,7 @@ function RenderComments({comments, addComment, dishId}){
       <ul className="list-unstyled">
         {commentList}
       </ul>
-        <CommentForm dishId={ dishId } addComment={addComment} />
+        <CommentForm dishId={ dishId } postComment={postComment} />
       
        
     </div>
@@ -62,7 +74,26 @@ function RenderComments({comments, addComment, dishId}){
 
     
 const DishDetail=(props) => {
-  if(props.dish !=null){
+  if(props.isLoading){
+    return(
+        <div className="container">
+          <div className="row">
+            <Loading />
+          </div>
+        </div>
+    );
+  }
+  else if(props.erMess){
+    return(
+      <div className="container">
+        <div className="row">
+          <h4>{props.errMess}</h4>
+        </div>
+      </div>
+  );
+
+  }
+  else if(props.dish !=null){
   return(
     <div className="container">
     <div className="row">
@@ -83,7 +114,7 @@ const DishDetail=(props) => {
         <div className="col-12 col-md-5 m-1">
             <RenderComments comments={props.comments} 
             
-            addComment={props.addComment}
+            postComment={props.postComment}
             dishId={props.dish.id}
             />
             
@@ -122,7 +153,7 @@ class CommentForm extends Component{
   handleSubmit(values){
     this.toggleModal();
     
-    this.props.addComment(this.props.dishId,values.rating,values.author,values.comment);
+    this.props.postComment(this.props.dishId,values.rating,values.author,values.comment);
   }
 
   render(){
